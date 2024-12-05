@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>中国风乐器模拟器</title>
+    <style>
+        body {
+            background: #f5f5f5;
+            font-family: "Microsoft YaHei", sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .instrument {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .note {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            margin: 5px;
+            background: #e8f4f8;
+            border: 1px solid #a8d0e6;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            line-height: 40px;
+        }
+        .note:hover {
+            background: #d0e8f2;
+        }
+        .composition {
+            min-height: 100px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            padding: 8px 15px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #357abd;
+        }
+        .curve-editor {
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        
+        #curveCanvas {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            cursor: crosshair;
+        }
+        
+        .editor-controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .curve-info {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .curve-controls {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .control-group input[type="range"] {
+            width: 100px;
+        }
+
+        .note-markers {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
+        }
+
+        .draggable-notes .note {
+            cursor: grab;
+            position: relative;
+        }
+        
+        .draggable-notes .note:active {
+            cursor: grabbing;
+        }
+        
+        .composition-controls {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .note-pitch {
+            font-size: 12px;
+            color: #666;
+            display: block;
+        }
+
+        .track {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+        
+        .track-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .track-title {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .track-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .track-notes {
+            min-height: 50px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .curve-track-indicator {
+            position: absolute;
+            left: -30px;
+            padding: 2px 6px;
+            background: #4a90e2;
+            color: white;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .curve-note {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 5px 0;
+            padding: 5px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .curve-note input[type="range"] {
+            flex: 1;
+        }
+        
+        .curve-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .curve-notes {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>中国风乐器模拟器</h1>
+        
+        <div class="instrument" id="guzheng">
+            <h2>古筝</h2>
+            <div class="notes">
+                <!-- 音符会通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div class="instrument" id="dizi">
+            <h2>笛子</h2>
+            <div class="notes">
+                <!-- 音符会通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div class="composition">
+            <h3>编曲区域</h3>
+            <div class="composition-controls">
+                <button onclick="addTrack()">添加音轨</button>
+                <button onclick="convertToLine()">转换为曲线</button>
+                <button onclick="playAllTracks()">播放全部</button>
+                <button onclick="clearAllTracks()">清除全部</button>
+            </div>
+            <div id="tracks-container">
+                <!-- 音轨将在这里动态生成 -->
+            </div>
+        </div>
+
+        <div class="curve-editor">
+            <h3>曲线编辑器</h3>
+            <div class="curve-info">
+                垂直方向控制音高，水平方向控制时间
+            </div>
+            <div class="curve-controls">
+                <div class="control-group">
+                    <label>当前音轨：</label>
+                    <select id="currentTrackSelector" onchange="switchCurrentTrack(this.value)">
+                        <!-- 选项会动态生成 -->
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>音域范围：</label>
+                    <select id="octaveRange">
+                        <option value="3">低音区 (C2-C5)</option>
+                        <option value="4" selected>中音区 (C3-C6)</option>
+                        <option value="5">高音区 (C4-C7)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>时长(秒)：</label>
+                    <input type="range" id="durationControl" min="1" max="10" value="3" step="0.5">
+                    <span id="durationValue">3s</span>
+                </div>
+                <div class="control-group">
+                    <label>音符密度：</label>
+                    <input type="range" id="densityControl" min="1" max="20" value="10">
+                    <span id="densityValue">10</span>
+                </div>
+            </div>
+            <canvas id="curveCanvas" width="700" height="200"></canvas>
+            <div class="editor-controls">
+                <button onclick="playCurve()">播放曲线</button>
+                <button onclick="clearCurve()">清除曲线</button>
+                <button onclick="smoothCurve()">平滑曲线</button>
+                <button onclick="startNewCurve()">新曲线</button>
+                <select id="curveInstrument">
+                    <option value="guzheng">古筝</option>
+                    <option value="dizi">笛子</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="playComposition()">播放</button>
+            <button onclick="clearComposition()">清除</button>
+        </div>
+    </div>
+
+    <div style="display: none">
+        <!-- 古筝音色 -->
+        <audio id="guzheng-c4" src="sounds/guzheng/c4.mp3" preload="auto"></audio>
+        <audio id="guzheng-d4" src="sounds/guzheng/d4.mp3" preload="auto"></audio>
+        <audio id="guzheng-e4" src="sounds/guzheng/e4.mp3" preload="auto"></audio>
+        <audio id="guzheng-g4" src="sounds/guzheng/g4.mp3" preload="auto"></audio>
+        <audio id="guzheng-a4" src="sounds/guzheng/a4.mp3" preload="auto"></audio>
+        
+        <!-- 笛子音色 -->
+        <audio id="dizi-c4" src="sounds/dizi/c4.mp3" preload="auto"></audio>
+        <audio id="dizi-d4" src="sounds/dizi/d4.mp3" preload="auto"></audio>
+        <audio id="dizi-e4" src="sounds/dizi/e4.mp3" preload="auto"></audio>
+        <audio id="dizi-g4" src="sounds/dizi/g4.mp3" preload="auto"></audio>
+        <audio id="dizi-a4" src="sounds/dizi/a4.mp3" preload="auto"></audio>
+    </div>
+
+    <script>
+        // 修改全局变量声明部分（在最前面）
+        let curveSettings = {
+            duration: 3,
+            density: 10,
+            octaveRange: 3
+        };
+
+        // 音符数据
+        const notes = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si'];
+        let audioContext = null;
+        let composition = [];
+        let currentCurve = {
+            points: [],
+            trackId: null,
+            instrument: null
+        }; // 初始化为对象而不是数组
+        let curves = []; // 所有曲线
+        let isDrawing = false;
+
+        let synths = {
+            guzheng: null,
+            dizi: null
+        };
+
+        // 音色预设
+        const presets = {
+            guzheng: {
+                pentatonic: ['C4', 'D4', 'E4', 'G4', 'A4'],
+                traditional: ['D4', 'E4', 'G4', 'A4', 'C5']
+            },
+            dizi: {
+                pentatonic: ['G4', 'A4', 'C5', 'D5', 'E5'],
+                traditional: ['D5', 'E5', 'G5', 'A5', 'C6']
+            }
+        };
+
+        // 添加当前编辑状态
+        let editingState = {
+            trackId: 1,
+            curveIndex: -1, // -1表示新曲线
+            isEditing: false
+        };
+
+        // 切换当前音轨
+        function switchCurrentTrack(trackId) {
+            editingState.trackId = parseInt(trackId);
+            updateCurveEditor();
+        }
+
+        // 更新音轨选择器
+        function updateTrackSelector() {
+            const selector = document.getElementById('currentTrackSelector');
+            selector.innerHTML = tracks.map(track => `
+                <option value="${track.id}" ${track.id === editingState.trackId ? 'selected' : ''}>
+                    ${track.name}
+                </option>
+            `).join('');
+        }
+
+        // 开始辑现有曲线
+        function editCurve(trackId, curveIndex) {
+            const track = tracks.find(t => t.id === trackId);
+            if (!track || !track.curves[curveIndex]) return;
+
+            editingState.trackId = trackId;
+            editingState.curveIndex = curveIndex;
+            editingState.isEditing = true;
+            
+            // 加载曲线到编辑器
+            currentCurve = {...track.curves[curveIndex]};
+            
+            // 更新UI
+            document.getElementById('currentTrackSelector').value = trackId;
+            document.getElementById('curveInstrument').value = track.instrument;
+            
+            drawAllCurves();
+        }
+
+        // 修改初始化事件监听部分
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('curveCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            initCanvas();
+            generateNotes('guzheng');
+            generateNotes('dizi');
+
+            // 为所有按钮添加初始化AudioContext的事件
+            document.querySelectorAll('button').forEach(button => {
+                button.addEventListener('click', async () => {
+                    await initAudioContext();
+                });
+            });
+
+            // 添加事件监听
+            document.getElementById('durationControl').addEventListener('input', function(e) {
+                curveSettings.duration = parseFloat(e.target.value);
+                document.getElementById('durationValue').textContent = curveSettings.duration + 's';
+                drawGrid();
+            });
+
+            document.getElementById('densityControl').addEventListener('input', function(e) {
+                curveSettings.density = parseInt(e.target.value);
+                document.getElementById('densityValue').textContent = curveSettings.density;
+            });
+
+            document.getElementById('octaveRange').addEventListener('change', function(e) {
+                curveSettings.octaveRange = parseFloat(e.target.value);
+                drawGrid();
+            });
+
+            // 添加画布事件监听器
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+        });
+
+        // 修改playCurve函数中的错误处理
+        function playCurve() {
+            if ((!currentCurve.points || currentCurve.points.length === 0) && 
+                (!curves || curves.length === 0)) return;
+            
+            initAudioContext().then(() => {
+                const now = Tone.now();
+                
+                // 播放当前曲线
+                if (currentCurve.points && currentCurve.points.length > 0) {
+                    const sampledPoints = sampleCurvePoints(currentCurve.points, curveSettings.density);
+                    playCurvePoints(sampledPoints, currentCurve.instrument || getCurrentTrackInstrument(), now);
+                }
+                
+                // 播放已保存的曲线
+                if (curves && curves.length > 0) {
+                    curves.forEach(curve => {
+                        if (curve.points && curve.points.length > 0) {
+                            const sampledPoints = sampleCurvePoints(curve.points, curveSettings.density);
+                            playCurvePoints(sampledPoints, curve.instrument, now);
+                        }
+                    });
+                }
+            });
+        }
+
+        // 初始化
+        generateNotes('guzheng');
+        generateNotes('dizi');
+
+        const canvas = document.getElementById('curveCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 初始化画布
+        function initCanvas() {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+        }
+
+        // 绘制网格
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = 1;
+
+            // 绘制水平线（音高线）
+            const octaveHeight = canvas.height / curveSettings.octaveRange;
+            for(let i = 0; i <= curveSettings.octaveRange; i++) {
+                const y = i * octaveHeight;
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                
+                // 添加音高标记
+                ctx.fillStyle = '#999';
+                ctx.font = '12px Arial';
+                const octave = Math.floor((curveSettings.octaveRange + 3) - i);
+                ctx.fillText(`C${octave}`, 5, y - 5);
+            }
+
+            // 绘制垂直线（时间线）
+            const timeStep = canvas.width / curveSettings.duration;
+            for(let i = 0; i <= curveSettings.duration; i++) {
+                const x = i * timeStep;
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                
+                // 添加时间标记
+                ctx.fillText(`${i}s`, x - 10, canvas.height - 5);
+            }
+
+            ctx.stroke();
+        }
+
+        // 鼠标事件处理
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        function startDrawing(e) {
+            isDrawing = true;
+            if (!editingState.isEditing) {
+                // 新曲线
+                currentCurve = {
+                    points: [],
+                    trackId: editingState.trackId,
+                    instrument: getCurrentTrackInstrument()
+                };
+            }
+            addPoint(e);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            addPoint(e);
+            drawAllCurves();
+        }
+
+        function stopDrawing() {
+            if (!isDrawing) return;
+            
+            if (currentCurve.points.length > 0) {
+                const track = tracks.find(t => t.id === editingState.trackId);
+                if (track) {
+                    if (editingState.isEditing) {
+                        // 更新现有曲线
+                        track.curves[editingState.curveIndex] = {...currentCurve};
+                    } else {
+                        // 添加新曲线
+                        track.curves.push({...currentCurve});
+                    }
+                    updateTracksDisplay();
+                }
+            }
+            
+            isDrawing = false;
+            editingState.isEditing = false;
+            editingState.curveIndex = -1;
+        }
+
+        function addPoint(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            if (!currentCurve.points) {
+                currentCurve.points = [];
+            }
+            currentCurve.points.push({x, y});
+        }
+
+        function drawAllCurves() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            
+            // 绘制所有音轨的曲线
+            tracks.forEach((track, trackIndex) => {
+                track.curves.forEach((curve, curveIndex) => {
+                    if (curve && curve.points && curve.points.length > 0) {
+                        const isEditing = editingState.trackId === track.id && 
+                                        editingState.curveIndex === curveIndex;
+                        
+                        const color = isEditing ? '#ff4444' : 
+                                     `hsl(${trackIndex * 360 / tracks.length}, 70%, 50%)`;
+                        
+                        drawSingleCurve(curve.points, color);
+                        
+                        // 添加音轨标识
+                        const firstPoint = curve.points[0];
+                        ctx.fillStyle = color;
+                        ctx.fillText(`T${track.id}-C${curveIndex + 1}`, 
+                                   firstPoint.x - 20, firstPoint.y - 10);
+                    }
+                });
+            });
+            
+            // 绘制当前正在绘制的曲线
+            if (currentCurve && currentCurve.points && currentCurve.points.length > 0) {
+                drawSingleCurve(currentCurve.points, '#4a90e2');
+            }
+        }
+
+        function drawSingleCurve(points, color) {
+            if (points.length < 2) return;
+            
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.moveTo(points[0].x, points[0].y);
+            
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            
+            ctx.stroke();
+        }
+
+        // 播放编曲
+        function playComposition() {
+            initAudioContext();
+            let currentTime = 0;
+            
+            composition.forEach((note, index) => {
+                setTimeout(() => {
+                    const frequency = getNoteFrequency(note.note);
+                    if (frequency) {
+                        playNote(frequency, note.instrument);
+                    }
+                }, currentTime);
+                currentTime += 500; // 每个音符间隔500ms
+            });
+        }
+
+        // 修改getNoteFrequency函数
+        function getNoteFrequency(note) {
+            return Tone.Frequency(note).toFrequency();
+        }
+
+        // 清除编曲
+        function clearComposition() {
+            composition = [];
+            updateCompositionDisplay();
+        }
+
+        // 初始化合成器
+        function initSynths() {
+            // 古筝音色
+            synths.guzheng = new Tone.PolySynth(Tone.Synth, {
+                oscillator: {
+                    type: "triangle",
+                    partials: [1, 0.5, 0.3, 0.2]
+                },
+                envelope: {
+                    attack: 0.02,
+                    decay: 1.2,
+                    sustain: 0.3,
+                    release: 1.8
+                },
+                portamento: 0.02,
+                volume: -8
+            }).toDestination();
+
+            // 笛子音色
+            synths.dizi = new Tone.PolySynth(Tone.Synth, {
+                oscillator: {
+                    type: "sine",
+                    partials: [1, 0.3, 0.2],
+                    phase: 0,
+                    harmonicity: 0.5
+                },
+                envelope: {
+                    attack: 0.1,
+                    decay: 0.2,
+                    sustain: 0.4,
+                    release: 1.4
+                },
+                filterEnvelope: {
+                    attack: 0.01,
+                    decay: 0.1,
+                    sustain: 0.2,
+                    release: 0.6,
+                    baseFrequency: 200,
+                    octaves: 4
+                },
+                volume: -10
+            }).toDestination();
+
+            // 添加效果器
+            const reverb = new Tone.Reverb({
+                decay: 2.5,
+                preDelay: 0.1
+            }).toDestination();
+
+            synths.guzheng.connect(reverb);
+            synths.dizi.connect(reverb);
+        }
+
+        // 为每个乐器生成音符
+        function generateNotes(instrumentId) {
+            const notesDiv = document.querySelector(`#${instrumentId} .notes`);
+            notes.forEach((note, index) => {
+                const noteElement = document.createElement('div');
+                noteElement.className = 'note';
+                noteElement.textContent = note;
+                noteElement.onclick = async () => {
+                    try {
+                        await initAudioContext();
+                        playNote(440 * Math.pow(2, index/12), instrumentId);
+                    } catch (error) {
+                        console.error('Error initializing audio:', error);
+                    }
+                };
+                notesDiv.appendChild(noteElement);
+            });
+        }
+
+        // 播放音符
+        function playNote(frequency, instrument) {
+            initAudioContext(); // 确保AudioContext已初始化
+
+            // 将频率转换为最接近的音符
+            const note = getClosestNote(frequency);
+            const audioId = `${instrument}-${note}`;
+            const audio = document.getElementById(audioId);
+            
+            if (audio) {
+                // 使用Promise处理音频加载
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(_ => {
+                        // 播放成功
+                        addToComposition(note, instrument);
+                    }).catch(error => {
+                        // 如果音频加载失败，使用合成音色作为后备
+                        console.log("音频加载失败，使用合成音色", error);
+                        playSynthNote(frequency, instrument);
+                    });
+                }
+            } else {
+                playSynthNote(frequency, instrument);
+            }
+        }
+
+        // 修改playSynthNote函数
+        function playSynthNote(frequency, instrument) {
+            if (!synths[instrument]) {
+                initSynths();
+            }
+
+            const now = Tone.now();
+            const duration = instrument === 'guzheng' ? 2 : 1;
+            
+            // 将频率转换为音符名称
+            const note = Tone.Frequency(frequency).toNote();
+            
+            // 添加颤音效果
+            if (instrument === 'dizi') {
+                const vibrato = new Tone.Vibrato({
+                    frequency: 5,
+                    depth: 0.1
+                }).toDestination();
+                synths[instrument].connect(vibrato);
+            }
+
+            // 播放音符
+            synths[instrument].triggerAttackRelease(note, duration, now);
+
+            // 古筝特有的滑音果
+            if (instrument === 'guzheng') {
+                const slideFreq = frequency * 1.02;
+                const slideNote = Tone.Frequency(slideFreq).toNote();
+                synths[instrument].triggerAttackRelease(slideNote, 0.1, now + 0.1);
+            }
+        }
+
+        // 添加音符转换函数
+        function getClosestNote(frequency) {
+            const notes = ['c4', 'd4', 'e4', 'g4', 'a4'];
+            const frequencies = {
+                'c4': 261.63,
+                'd4': 293.66,
+                'e4': 329.63,
+                'g4': 392.00,
+                'a4': 440.00
+            };
+            
+            let closestNote = notes[0];
+            let minDiff = Math.abs(frequency - frequencies[notes[0]]);
+            
+            for (let note of notes) {
+                const diff = Math.abs(frequency - frequencies[note]);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestNote = note;
+                }
+            }
+            
+            return closestNote;
+        }
+
+        // 添加音符到编曲区域
+        function addToComposition(note, instrument) {
+            composition.push({ note, instrument });
+            updateCompositionDisplay();
+        }
+
+        // 更新编曲显示
+        function updateCompositionDisplay() {
+            const compositionDiv = document.getElementById('composition-notes');
+            compositionDiv.innerHTML = composition.map(note => 
+                `<span class="note">${note.instrument === 'guzheng' ? '古筝' : '笛子'} ${note.note}</span>`
+            ).join(' ');
+        }
+
+        // 添加曲线平滑功能
+        function smoothCurve() {
+            if (!currentCurve.points || currentCurve.points.length < 3) return;
+            
+            const smoothedPoints = smoothPoints(currentCurve.points);
+            currentCurve.points = smoothedPoints;
+            
+            if (curves.length > 0) {
+                const lastCurve = curves[curves.length - 1];
+                if (lastCurve) {
+                    lastCurve.points = smoothedPoints;
+                }
+            }
+            
+            drawAllCurves();
+        }
+
+        // Catmull-Rom 样条插值
+        function catmullRom(p0, p1, p2, p3, t, tension) {
+            const t2 = t * t;
+            const t3 = t2 * t;
+            
+            return 0.5 * (
+                (2 * p1) +
+                (-p0 + p2) * t +
+                (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+                (-p0 + 3 * p1 - 3 * p2 + p3) * t3
+            );
+        }
+
+        // 采曲线点
+        function smoothPoints(points) {
+            let smoothedPoints = [];
+            const tension = 0.5;
+            
+            for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[i === 0 ? 0 : i - 1];
+                const p1 = points[i];
+                const p2 = points[i + 1];
+                const p3 = points[i === points.length - 2 ? points.length - 1 : i + 2];
+                
+                for (let t = 0; t < 1; t += 0.1) {
+                    const x = catmullRom(p0.x, p1.x, p2.x, p3.x, t, tension);
+                    const y = catmullRom(p0.y, p1.y, p2.y, p3.y, t, tension);
+                    smoothedPoints.push({x, y});
+                }
+            }
+            
+            return smoothedPoints;
+        }
+
+        // 添加开始新曲线函数
+        function startNewCurve() {
+            if (currentCurve.points && currentCurve.points.length > 0) {
+                curves.push({...currentCurve});
+                currentCurve = {
+                    points: [],
+                    trackId: getCurrentTrackId(),
+                    instrument: getCurrentTrackInstrument()
+                };
+            }
+            drawAllCurves();
+        }
+
+        // 修改清除函数
+        function clearCurve() {
+            curves = [];
+            currentCurve = {
+                points: [],
+                trackId: getCurrentTrackId(),
+                instrument: getCurrentTrackInstrument()
+            };
+            drawAllCurves();
+        }
+
+        // 添加播放单条曲线的函数
+        function playCurvePoints(points, instrument, startTime) {
+            points.forEach((point, index) => {
+                const delay = (point.x / canvas.width) * curveSettings.duration;
+                const baseFreq = 65.41; // C2
+                const maxFreq = baseFreq * Math.pow(2, curveSettings.octaveRange); // 两个八度范围
+                const frequency = maxFreq - (point.y / canvas.height) * (maxFreq - baseFreq);
+                
+                if (isFinite(frequency)) {
+                    try {
+                        const note = Tone.Frequency(frequency).toNote();
+                        synths[instrument].triggerAttackRelease(note, 0.1, startTime + delay);
+                    } catch (error) {
+                        console.error('Error playing note:', error);
+                    }
+                }
+            });
+        }
+
+        // 修改sampleCurvePoints函数（之前被删除了）
+        function sampleCurvePoints(points, density) {
+            if (points.length <= density) return points;
+            
+            const sampledPoints = [];
+            const step = points.length / density;
+            
+            for (let i = 0; i < density; i++) {
+                const index = Math.floor(i * step);
+                sampledPoints.push(points[index]);
+            }
+            
+            return sampledPoints;
+        }
+
+        // 添加音符到频率的映射
+        const noteToFreq = {
+            'C2': 65.41, 'D2': 73.42, 'E2': 82.41, 'F2': 87.31, 'G2': 98.00, 'A2': 110.00, 'B2': 123.47,
+            'C3': 130.81, 'D3': 146.83, 'E3': 164.81, 'F3': 174.61, 'G3': 196.00, 'A3': 220.00, 'B3': 246.94,
+            'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
+            'C5': 523.25, 'D5': 587.33, 'E5': 659.26, 'F5': 698.46, 'G5': 783.99, 'A5': 880.00, 'B5': 987.77,
+            'C6': 1046.50, 'D6': 1174.66, 'E6': 1318.51, 'F6': 1396.91, 'G6': 1567.98, 'A6': 1760.00, 'B6': 1975.53,
+            'C7': 2093.00
+        };
+
+        // 修改getClosestNote函数以支持更多音符
+        function getClosestNote(frequency) {
+            let closestNote = Object.keys(noteToFreq)[0];
+            let minDiff = Math.abs(frequency - noteToFreq[closestNote]);
+            
+            for (let note in noteToFreq) {
+                const diff = Math.abs(frequency - noteToFreq[note]);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestNote = note;
+                }
+            }
+            
+            return closestNote;
+        }
+
+        // 添加曲线转换为编曲的函数
+        function curveToComposition(curve) {
+            const sampledPoints = sampleCurvePoints(curve.points, curveSettings.density);
+            const notes = sampledPoints.map(point => {
+                const baseFreq = noteToFreq['C2'];
+                const maxFreq = baseFreq * Math.pow(2, curveSettings.octaveRange);
+                const frequency = maxFreq - (point.y / canvas.height) * (maxFreq - baseFreq);
+                const note = getClosestNote(frequency);
+                return {
+                    note: note,
+                    instrument: curve.instrument,
+                    time: (point.x / canvas.width) * curveSettings.duration
+                };
+            });
+            
+            composition = composition.concat(notes);
+            updateCompositionDisplay();
+        }
+
+        // 添加编曲转换为曲线的函数
+        function convertToLine() {
+            if (composition.length < 2) return;
+            
+            const points = composition.map(note => {
+                const frequency = noteToFreq[note.note];
+                const baseFreq = noteToFreq['C2'];
+                const maxFreq = baseFreq * Math.pow(2, curveSettings.octaveRange);
+                const y = canvas.height * (1 - (frequency - baseFreq) / (maxFreq - baseFreq));
+                const x = (note.time / curveSettings.duration) * canvas.width;
+                return {x, y};
+            });
+            
+            curves.push({
+                points: points,
+                instrument: composition[0].instrument
+            });
+            
+            drawAllCurves();
+        }
+
+        // 修改updateCompositionDisplay函数
+        function updateCompositionDisplay() {
+            const compositionDiv = document.getElementById('composition-notes');
+            compositionDiv.innerHTML = composition.map((note, index) => `
+                <span class="note" draggable="true" data-index="${index}">
+                    ${note.instrument === 'guzheng' ? '古筝' : '笛子'}
+                    <span class="note-pitch">${note.note}</span>
+                </span>
+            `).join(' ');
+            
+            // 添加拖拽功能
+            const notes = compositionDiv.getElementsByClassName('note');
+            Array.from(notes).forEach(note => {
+                note.addEventListener('dragstart', handleDragStart);
+                note.addEventListener('dragend', handleDragEnd);
+                note.addEventListener('dragover', handleDragOver);
+                note.addEventListener('drop', handleDrop);
+            });
+        }
+
+        // 添加拖拽事件处理
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.index);
+            e.target.style.opacity = '0.4';
+        }
+
+        function handleDragEnd(e) {
+            e.target.style.opacity = '1';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+            const toIndex = parseInt(e.target.closest('.note').dataset.index);
+            
+            if (fromIndex !== toIndex) {
+                const temp = composition[fromIndex];
+                composition[fromIndex] = composition[toIndex];
+                composition[toIndex] = temp;
+                updateCompositionDisplay();
+            }
+        }
+
+        // 修改playCurve函数以支持转换为编曲
+        function playCurve() {
+            if ((!currentCurve.points || currentCurve.points.length === 0) && 
+                (!curves || curves.length === 0)) return;
+            
+            // 将当前曲线转换为编曲
+            if (currentCurve.points && currentCurve.points.length > 0) {
+                curveToComposition({
+                    points: currentCurve.points,
+                    instrument: document.getElementById('curveInstrument').value
+                });
+            }
+            
+            // 将所有曲线转换为编曲
+            curves.forEach(curve => {
+                curveToComposition(curve);
+            });
+        }
+
+        // 添加音轨相关变量
+        let tracks = [{
+            id: 1,
+            name: '音轨 1',
+            notes: [],
+            curves: [], // 储与该音轨关联的曲线
+            instrument: 'guzheng'
+        }];
+
+        // 添加新音轨
+        function addTrack() {
+            const newTrack = {
+                id: tracks.length + 1,
+                name: `音轨 ${tracks.length + 1}`,
+                notes: [],
+                curves: [],
+                instrument: 'dizi'
+            };
+            tracks.push(newTrack);
+            updateTracksDisplay();
+        }
+
+        // 更新音轨显示
+        function updateTracksDisplay() {
+            const container = document.getElementById('tracks-container');
+            container.innerHTML = tracks.map((track, index) => `
+                <div class="track" data-track-id="${track.id}">
+                    <div class="track-header">
+                        <span class="track-title">${track.name}</span>
+                        <div class="track-controls">
+                            <select onchange="changeTrackInstrument(${track.id}, this.value)">
+                                <option value="guzheng" ${track.instrument === 'guzheng' ? 'selected' : ''}>古筝</option>
+                                <option value="dizi" ${track.instrument === 'dizi' ? 'selected' : ''}>笛子</option>
+                            </select>
+                            <button onclick="playTrack(${track.id})">播放</button>
+                            <button onclick="clearTrack(${track.id})">清除</button>
+                            ${index > 0 ? `<button onclick="removeTrack(${track.id})">删除</button>` : ''}
+                        </div>
+                    </div>
+                    <div class="track-notes" id="track-notes-${track.id}">
+                        ${renderTrackNotes(track)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 修改曲线绘制相关函数
+        function startDrawing(e) {
+            isDrawing = true;
+            if (!editingState.isEditing) {
+                // 新曲线
+                currentCurve = {
+                    points: [],
+                    trackId: editingState.trackId,
+                    instrument: getCurrentTrackInstrument()
+                };
+            }
+            addPoint(e);
+        }
+
+        function stopDrawing() {
+            if (!isDrawing) return;
+            
+            if (currentCurve.points.length > 0) {
+                const track = tracks.find(t => t.id === editingState.trackId);
+                if (track) {
+                    if (editingState.isEditing) {
+                        // 更新现有曲线
+                        track.curves[editingState.curveIndex] = {...currentCurve};
+                    } else {
+                        // 添加曲线
+                        track.curves.push({...currentCurve});
+                    }
+                    updateTracksDisplay();
+                }
+            }
+            
+            isDrawing = false;
+            editingState.isEditing = false;
+            editingState.curveIndex = -1;
+        }
+
+        // 修改绘制函数以显示音轨标识
+        function drawAllCurves() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            
+            // 绘制每个音轨的曲线
+            tracks.forEach((track, trackIndex) => {
+                track.curves.forEach((curve, curveIndex) => {
+                    const color = `hsl(${trackIndex * 360 / tracks.length}, 70%, 50%)`;
+                    drawSingleCurve(curve.points, color);
+                    
+                    // 添加音轨标识
+                    if (curve.points.length > 0) {
+                        const firstPoint = curve.points[0];
+                        ctx.fillStyle = color;
+                        ctx.fillText(`T${track.id}`, firstPoint.x - 20, firstPoint.y - 10);
+                    }
+                });
+            });
+            
+            // 绘制当前曲线
+            if (currentCurve && currentCurve.points.length > 0) {
+                drawSingleCurve(currentCurve.points, '#4a90e2');
+            }
+        }
+
+        // 修改曲线到音符的转换
+        function curveToNotes(curve) {
+            const sampledPoints = sampleCurvePoints(curve.points, curveSettings.density);
+            return sampledPoints.map(point => {
+                const baseFreq = noteToFreq['C2'];
+                const maxFreq = baseFreq * Math.pow(2, curveSettings.octaveRange);
+                const frequency = maxFreq - (point.y / canvas.height) * (maxFreq - baseFreq);
+                return {
+                    note: getClosestNote(frequency),
+                    time: (point.x / canvas.width) * curveSettings.duration,
+                    instrument: curve.instrument
+                };
+            });
+        }
+
+        // 播放单个音轨
+        function playTrack(trackId) {
+            const track = tracks.find(t => t.id === trackId);
+            if (!track) return;
+            
+            initAudioContext().then(() => {
+                const now = Tone.now();
+                
+                // 播放音轨中的所有音符
+                track.notes.forEach(note => {
+                    const time = now + note.time;
+                    synths[track.instrument].triggerAttackRelease(note.note, 0.1, time);
+                });
+                
+                // 播放音轨中的所有曲线
+                track.curves.forEach(curve => {
+                    const notes = curveToNotes(curve);
+                    notes.forEach(note => {
+                        const time = now + note.time;
+                        synths[track.instrument].triggerAttackRelease(note.note, 0.1, time);
+                    });
+                });
+            });
+        }
+
+        // 播放所有音轨
+        function playAllTracks() {
+            tracks.forEach(track => playTrack(track.id));
+        }
+
+        // 辅助函数
+        function getCurrentTrackId() {
+            return tracks[0].id; // 默认使用第一个音轨，可以添加UI让用户选择
+        }
+
+        function getCurrentTrackInstrument() {
+            const track = tracks.find(t => t.id === getCurrentTrackId());
+            return track ? track.instrument : 'guzheng';
+        }
+
+        function changeTrackInstrument(trackId, instrument) {
+            const track = tracks.find(t => t.id === trackId);
+            if (track) {
+                track.instrument = instrument;
+                track.curves.forEach(curve => curve.instrument = instrument);
+                updateTracksDisplay();
+            }
+        }
+
+        // 初始化时创建第一个音轨的显示
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTracksDisplay();
+        });
+
+        // 添加renderTrackNotes函数
+        function renderTrackNotes(track) {
+            let notesHtml = '';
+            
+            // 渲染音符
+            if (track.notes.length > 0) {
+                notesHtml += '<div class="track-note-group">';
+                track.notes.forEach((note, index) => {
+                    notesHtml += `
+                        <span class="note" draggable="true" data-note-index="${index}">
+                            <span class="note-pitch">${note.note}</span>
+                            <span class="note-time">${(note.time).toFixed(1)}s</span>
+                        </span>
+                    `;
+                });
+                notesHtml += '</div>';
+            }
+            
+            // 染曲线信息
+            if (track.curves.length > 0) {
+                notesHtml += '<div class="track-curves">';
+                track.curves.forEach((curve, index) => {
+                    const noteCount = curve.points.length;
+                    notesHtml += `
+                        <div class="curve-info">
+                            曲线 ${index + 1} 
+                            <span class="curve-details">
+                                (${noteCount}个点)
+                                <button onclick="playCurvePart(${track.id}, ${index})">播放</button>
+                                <button onclick="editCurve(${track.id}, ${index})">编辑</button>
+                                <button onclick="convertCurveToNotes(${track.id}, ${index})">转换为音符</button>
+                                <button onclick="deleteCurve(${track.id}, ${index})">删除</button>
+                            </span>
+                        </div>
+                    `;
+                });
+                notesHtml += '</div>';
+            }
+            
+            return notesHtml || '<div class="empty-track">空音轨</div>';
+        }
+
+        // 添加相关的样式
+        const style = document.createElement('style');
+        style.textContent = `
+            .track-note-group {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+                margin-bottom: 10px;
+            }
+            
+            .track-curves {
+                border-top: 1px solid #eee;
+                padding-top: 10px;
+            }
+            
+            .curve-info {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 5px 0;
+            }
+            
+            .curve-details {
+                font-size: 12px;
+                color: #666;
+            }
+            
+            .empty-track {
+                color: #999;
+                font-style: italic;
+                padding: 10px 0;
+            }
+            
+            .note-time {
+                font-size: 10px;
+                color: #666;
+                margin-left: 4px;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 添加曲线部分播放功能
+        function playCurvePart(trackId, curveIndex) {
+            const track = tracks.find(t => t.id === trackId);
+            if (!track || !track.curves[curveIndex]) return;
+            
+            initAudioContext().then(() => {
+                const curve = track.curves[curveIndex];
+                const notes = curveToNotes(curve);
+                const now = Tone.now();
+                
+                notes.forEach(note => {
+                    const time = now + note.time;
+                    synths[track.instrument].triggerAttackRelease(note.note, 0.1, time);
+                });
+            });
+        }
+
+        // 添加删除曲线功能
+        function deleteCurve(trackId, curveIndex) {
+            const track = tracks.find(t => t.id === trackId);
+            if (!track) return;
+            
+            track.curves.splice(curveIndex, 1);
+            updateTracksDisplay();
+            drawAllCurves();
+        }
+
+        // 添加清除音轨功能
+        function clearTrack(trackId) {
+            const track = tracks.find(t => t.id === trackId);
+            if (!track) return;
+            
+            track.notes = [];
+            track.curves = [];
+            updateTracksDisplay();
+            drawAllCurves();
+        }
+
+        // 添加删除音轨功能
+        function removeTrack(trackId) {
+            const index = tracks.findIndex(t => t.id === trackId);
+            if (index > 0) { // 不允许删除第一个音轨
+                tracks.splice(index, 1);
+                updateTracksDisplay();
+                drawAllCurves();
+            }
+        }
+
+        // 修改初始化逻辑
+        document.addEventListener('DOMContentLoaded', function() {
+            // 确保在DOM加载完���后再初始化显示
+            setTimeout(() => {
+                updateTrackSelector();
+                updateTracksDisplay();
+                initCanvas();
+            }, 0);
+        });
+
+        // 添加曲线转换为音符的功能
+        function convertCurveToNotes(trackId, curveIndex) {
+            const track = tracks.find(t => t.id === trackId);
+            if (!track || !track.curves[curveIndex]) return;
+            
+            const curve = track.curves[curveIndex];
+            const notes = curveToNotes(curve);
+            
+            // 添加到音轨的音符列表
+            track.notes = track.notes.concat(notes);
+            
+            // 更新显示
+            updateTracksDisplay();
+        }
+
+        // 添加 AudioContext 初始化函数
+        async function initAudioContext() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                if (Tone.context.state !== 'running') {
+                    await Tone.start();
+                    console.log('AudioContext started');
+                }
+                
+                if (!synths.guzheng || !synths.dizi) {
+                    initSynths();
+                }
+                
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+            } catch (error) {
+                console.error('AudioContext initialization error:', error);
+            }
+        }
+
+        // 添加用户交互初始化
+        document.addEventListener('click', async function initOnFirstClick() {
+            await initAudioContext();
+            // 只需要初始化一次，所以移除事件监听器
+            document.removeEventListener('click', initOnFirstClick);
+        });
+
+        // 修改播放相关函数，添加错误处理
+        async function playNote(frequency, instrument) {
+            try {
+                await initAudioContext();
+                // ... 其余代码保持不变
+            } catch (error) {
+                console.error('Error playing note:', error);
+            }
+        }
+
+        async function playComposition() {
+            try {
+                await initAudioContext();
+                let currentTime = 0;
+                
+                composition.forEach((note, index) => {
+                    setTimeout(() => {
+                        const frequency = getNoteFrequency(note.note);
+                        if (frequency) {
+                            playNote(frequency, note.instrument);
+                        }
+                    }, currentTime);
+                    currentTime += 500;
+                });
+            } catch (error) {
+                console.error('Error playing composition:', error);
+            }
+        }
+
+        async function playCurve() {
+            try {
+                await initAudioContext();
+                // ... 其余代码保持不变
+            } catch (error) {
+                console.error('Error playing curve:', error);
+            }
+        }
+
+        // 添加曲线点拖拽相关变量
+        let dragState = {
+            isDragging: false,
+            pointIndex: -1,
+            curveIndex: -1,
+            trackId: null,
+            startX: 0,
+            startY: 0
+        };
+
+        // 修改drawSingleCurve函数，添加控制点显示
+        function drawSingleCurve(points, color, isEditable = false) {
+            if (points.length < 2) return;
+            
+            // 绘制曲线
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.moveTo(points[0].x, points[0].y);
+            
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.stroke();
+            
+            // 如果可编辑，绘制控制点
+            if (isEditable) {
+                points.forEach((point, index) => {
+                    ctx.beginPath();
+                    ctx.fillStyle = color;
+                    ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 显示音高信息
+                    const frequency = getFrequencyAtPoint(point);
+                    const note = getClosestNote(frequency);
+                    ctx.fillStyle = '#666';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(note, point.x + 5, point.y - 5);
+                });
+            }
+        }
+
+        // 添加点击检测函数
+        function isPointNearCurve(x, y, curve) {
+            const threshold = 5;
+            return curve.points.findIndex(point => 
+                Math.abs(point.x - x) < threshold && 
+                Math.abs(point.y - y) < threshold
+            );
+        }
+
+        // 修改canvas事件监听器
+        canvas.addEventListener('mousedown', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // 检查是否点击了现有曲线的控制点
+            for (let track of tracks) {
+                for (let i = 0; i < track.curves.length; i++) {
+                    const pointIndex = isPointNearCurve(x, y, track.curves[i]);
+                    if (pointIndex !== -1) {
+                        dragState = {
+                            isDragging: true,
+                            pointIndex,
+                            curveIndex: i,
+                            trackId: track.id,
+                            startX: x,
+                            startY: y
+                        };
+                        return;
+                    }
+                }
+            }
+            
+            // 如果没有点击控制点，则开始新的绘制
+            startDrawing(e);
+        });
+
+        canvas.addEventListener('mousemove', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (dragState.isDragging) {
+                const track = tracks.find(t => t.id === dragState.trackId);
+                if (track && track.curves[dragState.curveIndex]) {
+                    // 更新点的位置
+                    track.curves[dragState.curveIndex].points[dragState.pointIndex] = {x, y};
+                    drawAllCurves();
+                    
+                    // 实时更新音高显示
+                    updateNoteInfo(x, y);
+                }
+            } else if (isDrawing) {
+                draw(e);
+            }
+        });
+
+        canvas.addEventListener('mouseup', function() {
+            if (dragState.isDragging) {
+                dragState.isDragging = false;
+                updateTracksDisplay();
+            } else {
+                stopDrawing();
+            }
+        });
+
+        // 添加音高信息显示
+        function updateNoteInfo(x, y) {
+            const frequency = getFrequencyAtPoint({x, y});
+            const note = getClosestNote(frequency);
+            
+            // 更新UI显示
+            const noteInfo = document.getElementById('noteInfo') || createNoteInfoElement();
+            noteInfo.textContent = `音高: ${note}`;
+            noteInfo.style.left = `${x + 10}px`;
+            noteInfo.style.top = `${y - 20}px`;
+        }
+
+        // 创建音高信息显示元素
+        function createNoteInfoElement() {
+            const noteInfo = document.createElement('div');
+            noteInfo.id = 'noteInfo';
+            noteInfo.style.position = 'absolute';
+            noteInfo.style.background = 'rgba(0,0,0,0.7)';
+            noteInfo.style.color = 'white';
+            noteInfo.style.padding = '4px 8px';
+            noteInfo.style.borderRadius = '4px';
+            noteInfo.style.fontSize = '12px';
+            noteInfo.style.pointerEvents = 'none';
+            document.querySelector('.curve-editor').appendChild(noteInfo);
+            return noteInfo;
+        }
+
+        // 修改renderTrackNotes函数，添加曲线编辑功能
+        function renderTrackNotes(track) {
+            let notesHtml = '';
+            
+            // 渲染曲线信息
+            if (track.curves.length > 0) {
+                notesHtml += '<div class="track-curves">';
+                track.curves.forEach((curve, index) => {
+                    const notes = curveToNotes(curve);
+                    notesHtml += `
+                        <div class="curve-info">
+                            <div class="curve-header">
+                                曲线 ${index + 1}
+                                <button onclick="toggleCurveNotes(${track.id}, ${index})">
+                                    显示/隐藏音符
+                                </button>
+                            </div>
+                            <div class="curve-notes" id="curve-${track.id}-${index}" style="display: none;">
+                                ${renderCurveNotes(notes)}
+                            </div>
+                            <div class="curve-controls">
+                                <button onclick="playCurvePart(${track.id}, ${index})">播放</button>
+                                <button onclick="editCurve(${track.id}, ${index})">编辑</button>
+                                <button onclick="deleteCurve(${track.id}, ${index})">删除</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                notesHtml += '</div>';
+            }
+            
+            return notesHtml;
+        }
+
+        // 添加曲线音符渲染函数
+        function renderCurveNotes(notes) {
+            return notes.map((note, index) => `
+                <div class="curve-note" data-note-index="${index}">
+                    <span class="note-pitch">${note.note}</span>
+                    <span class="note-time">${note.time.toFixed(2)}s</span>
+                    <input type="range" 
+                           min="0" 
+                           max="100" 
+                           value="${getNoteValue(note)}"
+                           onchange="updateNoteValue(this, '${note.note}')">
+                </div>
+            `).join('');
+        }
+
+        // 添加音符值转换函数
+        function getNoteValue(note) {
+            const freq = noteToFreq[note.note];
+            const baseFreq = noteToFreq['C2'];
+            const maxFreq = baseFreq * Math.pow(2, curveSettings.octaveRange);
+            return ((freq - baseFreq) / (maxFreq - baseFreq)) * 100;
+        }
+
+        // 添加音符更新函数
+        function updateNoteValue(input, originalNote) {
+            const value = input.value;
+            const baseFreq = noteToFreq['C2'];
+            const maxFreq = baseFreq * Math.pow(2, curveSettings.octaveRange);
+            const newFreq = baseFreq + (value / 100) * (maxFreq - baseFreq);
+            const newNote = getClosestNote(newFreq);
+            
+            // 更新显示
+            const noteElement = input.parentElement.querySelector('.note-pitch');
+            noteElement.textContent = newNote;
+        }
+
+        // 添加显示/隐藏曲线音符的函数
+        function toggleCurveNotes(trackId, curveIndex) {
+            const element = document.getElementById(`curve-${trackId}-${curveIndex}`);
+            if (element) {
+                element.style.display = element.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+    </script>
+</body>
+</html> 
