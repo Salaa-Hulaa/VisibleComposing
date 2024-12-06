@@ -46,41 +46,177 @@ function updateTracksDisplay() {
 function renderTrackNotes(track) {
     let notesHtml = '';
     
-    // 渲染音符
-    if (track.notes.length > 0) {
-        notesHtml += '<div class="track-note-group">';
-        track.notes.forEach((note, index) => {
-            notesHtml += `
-                <span class="note" draggable="true" data-note-index="${index}">
-                    <span class="note-pitch">${note.note}</span>
-                    <span class="note-time">${(note.time).toFixed(1)}s</span>
-                </span>
-            `;
-        });
-        notesHtml += '</div>';
+    // 添加音符编辑网格
+    notesHtml += `
+        <div class="note-grid-container">
+            <div class="note-grid">
+                ${renderNoteGrid(track)}
+            </div>
+            <div class="piano-roll">
+                ${renderPianoRoll()}
+            </div>
+        </div>
+    `;
+    
+    // 添加音符编辑控制器
+    notesHtml += `
+        <div class="note-controls">
+            <button onclick="addNote(${track.id})">添加音符</button>
+            <button onclick="convertToCurve(${track.id})">转换为曲线</button>
+        </div>
+    `;
+    
+    return notesHtml;
+}
+
+// 添加音符网格渲染函数
+function renderNoteGrid(track) {
+    const measureWidth = 200; // 每小节的宽度
+    const noteHeight = 20;    // 每个音符格子的高度
+    const notes = ['C5', 'B4', 'A4', 'G4', 'F4', 'E4', 'D4', 'C4'];
+    let gridHtml = '';
+    
+    // 渲染网格背景
+    gridHtml += `<div class="grid-background">`;
+    for (let measure = 0; measure < musicSettings.measureCount; measure++) {
+        for (let beat = 0; beat < musicSettings.timeSignature.numerator; beat++) {
+            gridHtml += `<div class="grid-beat"></div>`;
+        }
+    }
+    gridHtml += `</div>`;
+    
+    // 渲染已有的音符
+    track.notes.forEach(note => {
+        const noteX = (note.time / curveSettings.duration) * (measureWidth * musicSettings.measureCount);
+        const noteY = notes.indexOf(note.note) * noteHeight;
+        const noteWidth = (note.duration / curveSettings.duration) * (measureWidth * musicSettings.measureCount);
+        
+        gridHtml += `
+            <div class="note-block" 
+                 style="left: ${noteX}px; top: ${noteY}px; width: ${noteWidth}px;"
+                 data-note="${note.note}"
+                 data-time="${note.time}"
+                 data-duration="${note.duration}"
+                 onclick="editNote(${track.id}, '${note.note}', ${note.time}, ${note.duration})">
+                ${note.note}
+            </div>
+        `;
+    });
+    
+    return gridHtml;
+}
+
+// 添加钢琴卷帘渲染函数
+function renderPianoRoll() {
+    const notes = ['C5', 'B4', 'A4', 'G4', 'F4', 'E4', 'D4', 'C4'];
+    return notes.map(note => `
+        <div class="piano-key" data-note="${note}">
+            ${note}
+        </div>
+    `).join('');
+}
+
+// 添加音符编辑函数
+function editNote(trackId, note, time, duration) {
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) return;
+    
+    showNoteEditPanel(trackId, note, time, duration);
+}
+
+// 添加音符编辑面板
+function showNoteEditPanel(trackId, note, time, duration) {
+    const panel = document.createElement('div');
+    panel.className = 'note-edit-panel';
+    panel.innerHTML = `
+        <h4>编辑音符</h4>
+        <div class="note-properties">
+            <div class="control-group">
+                <label>音高：</label>
+                <select id="noteValue">
+                    ${Object.keys(noteToFreq).map(n => 
+                        `<option value="${n}" ${n === note ? 'selected' : ''}>${n}</option>`
+                    ).join('')}
+                </select>
+            </div>
+            <div class="control-group">
+                <label>时间(拍)：</label>
+                <input type="number" id="noteTime" value="${time}" step="0.25">
+            </div>
+            <div class="control-group">
+                <label>时值(拍)：</label>
+                <input type="number" id="noteDuration" value="${duration}" step="0.25">
+            </div>
+        </div>
+        <div class="note-edit-controls">
+            <button onclick="updateNote(${trackId})">确定</button>
+            <button onclick="closeNoteEditPanel()">取消</button>
+        </div>
+    `;
+    
+    document.body.appendChild(panel);
+}
+
+// 更新音符
+function updateNote(trackId) {
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) return;
+    
+    const note = document.getElementById('noteValue').value;
+    const time = parseFloat(document.getElementById('noteTime').value);
+    const duration = parseFloat(document.getElementById('noteDuration').value);
+    
+    // 更新音符
+    const noteIndex = track.notes.findIndex(n => 
+        n.note === note && Math.abs(n.time - time) < 0.01
+    );
+    
+    if (noteIndex >= 0) {
+        track.notes[noteIndex] = { note, time, duration };
     }
     
-    // 渲染曲线信息
-    if (track.curves.length > 0) {
-        notesHtml += '<div class="track-curves">';
-        track.curves.forEach((curve, index) => {
-            const noteCount = curve.points.length;
-            notesHtml += `
-                <div class="curve-info">
-                    曲线 ${index + 1} 
-                    <span class="curve-details">
-                        (${noteCount}个点)
-                        <button onclick="playCurvePart(${track.id}, ${index})">播放</button>
-                        <button onclick="editCurve(${track.id}, ${index})">编辑</button>
-                        <button onclick="deleteCurve(${track.id}, ${index})">删除</button>
-                    </span>
-                </div>
-            `;
+    // 更新对应的曲线
+    updateCurveFromNotes(track);
+    
+    // 关闭编辑面板
+    closeNoteEditPanel();
+    
+    // 更新显示
+    updateTracksDisplay();
+}
+
+// 从音符更新曲线
+function updateCurveFromNotes(track) {
+    if (!track.notes.length) return;
+    
+    // 创建新的曲线点
+    const points = [];
+    const totalDuration = curveSettings.duration;
+    
+    track.notes.forEach(note => {
+        const x = (note.time / totalDuration) * canvas.width;
+        const y = noteToCanvasY(note.note);
+        
+        // 添加音符起始点
+        points.push({ x, y });
+        
+        // 添加音符结束点
+        const endX = ((note.time + note.duration) / totalDuration) * canvas.width;
+        points.push({ x: endX, y });
+    });
+    
+    // 更新或创建曲线
+    if (!track.curves.length) {
+        track.curves.push({
+            points,
+            trackId: track.id,
+            instrument: track.instrument
         });
-        notesHtml += '</div>';
+    } else {
+        track.curves[0].points = points;
     }
     
-    return notesHtml || '<div class="empty-track">空音轨</div>';
+    drawAllCurves();
 }
 
 function getCurrentTrackId() {
