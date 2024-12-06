@@ -1,54 +1,46 @@
-// 主应用逻辑
 document.addEventListener('DOMContentLoaded', function() {
+    // 首先初始化画布
     initCanvas();
+    
+    // 初始化音乐设置
+    updateMusicSettings();
+    
+    // 初始化其他内容
     generateNotes('guzheng');
     generateNotes('dizi');
     updateTracksDisplay();
     updateTrackSelector();
 
-    // 初始化事件监听器
+    // 添加事件监听器
+    initializeEventListeners();
+});
+
+// 分离事件监听器初始化
+function initializeEventListeners() {
+    // 音乐设置控制器
+    document.getElementById('bpmControl').addEventListener('input', updateMusicSettings);
+    document.getElementById('timeSignature').addEventListener('change', updateMusicSettings);
+    document.getElementById('quantizeValue').addEventListener('change', updateMusicSettings);
+    document.getElementById('measureCount').addEventListener('change', function(e) {
+        updateMeasureCount(e.target.value);
+    });
+
+    // 画布事件
+    const canvas = document.getElementById('curveCanvas');
+    if (canvas) {
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+    }
+
+    // 其他按钮事件
     document.querySelectorAll('button').forEach(button => {
         button.addEventListener('click', async () => {
             await initAudioContext();
         });
     });
-
-    // 添加曲线编辑器的事件监听
-    const canvas = document.getElementById('curveCanvas');
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseout', stopDrawing);
-
-    // 添加控制器的事件监听
-    document.getElementById('durationControl').addEventListener('input', function(e) {
-        curveSettings.duration = parseFloat(e.target.value);
-        document.getElementById('durationValue').textContent = curveSettings.duration + 's';
-        drawGrid();
-    });
-
-    document.getElementById('densityControl').addEventListener('input', function(e) {
-        curveSettings.density = parseInt(e.target.value);
-        document.getElementById('densityValue').textContent = curveSettings.density;
-    });
-
-    document.getElementById('octaveRange').addEventListener('change', function(e) {
-        curveSettings.octaveRange = parseFloat(e.target.value);
-        drawGrid();
-    });
-
-    // 添加音轨变化的监听
-    document.getElementById('currentTrackSelector').addEventListener('change', function(e) {
-        drawAllCurves();
-    });
-
-    document.getElementById('bpmControl').addEventListener('input', updateMusicSettings);
-    document.getElementById('timeSignature').addEventListener('change', updateMusicSettings);
-    document.getElementById('quantizeValue').addEventListener('change', updateMusicSettings);
-
-    // 初始化音乐设置
-    updateMusicSettings();
-});
+}
 
 function generateNotes(instrumentId) {
     const notesDiv = document.querySelector(`#${instrumentId} .notes`);
