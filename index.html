@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>中国风乐器模拟器</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="js/notes.js"></script>
+    <script src="js/synth.js"></script>
+    <script src="js/curve.js"></script>
+    <script src="js/track.js"></script>
+    <script src="js/app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>中国风乐器模拟器</h1>
+        
+        <div class="instrument" id="guzheng">
+            <h2>古筝</h2>
+            <div class="notes"></div>
+        </div>
+
+        <div class="instrument" id="dizi">
+            <h2>笛子</h2>
+            <div class="notes"></div>
+        </div>
+
+        <div class="composition">
+            <h3>编曲区域</h3>
+            <div class="composition-controls">
+                <button onclick="addTrack()">添加音轨</button>
+                <button onclick="convertToLine()">转换为曲线</button>
+                <button onclick="playAllTracks()">播放全部</button>
+                <button onclick="clearAllTracks()">清除全部</button>
+            </div>
+            <div id="tracks-container"></div>
+        </div>
+
+        <div class="curve-editor">
+            <h3>曲线编辑器</h3>
+            <div class="curve-info">
+                垂直方向控制音高，水平方向控制时间
+            </div>
+            <div class="curve-controls">
+                <div class="control-group">
+                    <label>当前音轨：</label>
+                    <select id="currentTrackSelector" onchange="switchCurrentTrack(this.value)">
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>音域范围：</label>
+                    <select id="octaveRange">
+                        <option value="3">低音区 (C2-C5)</option>
+                        <option value="4" selected>中音区 (C3-C6)</option>
+                        <option value="5">高音区 (C4-C7)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>时长(秒)：</label>
+                    <input type="range" id="durationControl" min="1" max="10" value="3" step="0.5">
+                    <span id="durationValue">3s</span>
+                </div>
+                <div class="control-group">
+                    <label>音符密度：</label>
+                    <input type="range" id="densityControl" min="1" max="20" value="10">
+                    <span id="densityValue">10</span>
+                </div>
+                <div class="curve-controls">
+                    <div class="control-group">
+                        <label>拍子：</label>
+                        <select id="timeSignature">
+                            <option value="4/4">4/4</option>
+                            <option value="3/4">3/4</option>
+                            <option value="2/4">2/4</option>
+                            <option value="6/8">6/8</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>速度(BPM)：</label>
+                        <input type="number" id="bpmControl" min="60" max="200" value="120">
+                    </div>
+                    <div class="control-group">
+                        <label>量化：</label>
+                        <select id="quantizeValue">
+                            <option value="4">四分音符</option>
+                            <option value="8">八分音符</option>
+                            <option value="16">十六分音符</option>
+                            <option value="32">三十二分音符</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <canvas id="curveCanvas" width="700" height="200"></canvas>
+            <div class="editor-controls">
+                <button onclick="playCurve()">播放曲线</button>
+                <button onclick="clearCurve()">清除曲线</button>
+                <button onclick="smoothCurve()">平滑曲线</button>
+                <button onclick="startNewCurve()">新曲线</button>
+                <select id="curveInstrument">
+                    <option value="guzheng">古筝</option>
+                    <option value="dizi">笛子</option>
+                </select>
+            </div>
+            <div class="curve-edit-panel" style="display: none;">
+                <h4>曲线编辑</h4>
+                <div class="curve-properties">
+                    <div class="control-group">
+                        <label>起始音高：</label>
+                        <select class="curve-start-note"></select>
+                    </div>
+                    <div class="control-group">
+                        <label>结束音高：</label>
+                        <select class="curve-end-note"></select>
+                    </div>
+                    <div class="control-group">
+                        <label>曲线形状：</label>
+                        <select class="curve-shape">
+                            <option value="linear">直线</option>
+                            <option value="sine">正弦</option>
+                            <option value="custom">自定义</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>音符密度：</label>
+                        <input type="range" min="1" max="20" value="10" class="curve-density">
+                    </div>
+                </div>
+                <div class="curve-controls">
+                    <button onclick="applyCurveChanges()">应用更改</button>
+                    <button onclick="previewCurve()">预览</button>
+                    <button onclick="cancelCurveEdit()">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
