@@ -1,18 +1,25 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // 首先初始化画布
-    initCanvas();
-    
-    // 初始化音乐设置
-    updateMusicSettings();
-    
-    // 初始化其他内容
-    generateNotes('guzheng');
-    generateNotes('dizi');
-    updateTracksDisplay();
-    updateTrackSelector();
-
-    // 添加事件监听器
-    initializeEventListeners();
+    try {
+        // 首先初始化音轨
+        updateTracksDisplay();
+        updateTrackSelector();
+        
+        // 然后初始化画布
+        initCanvas();
+        
+        // 初始化音乐设置
+        updateMusicSettings();
+        
+        // 初始化其他内容
+        generateNotes('guzheng');
+        generateNotes('dizi');
+        
+        // 添加事件监听器
+        initializeEventListeners();
+        
+    } catch (error) {
+        console.error('Initialization error:', error);
+    }
 });
 
 // 分离事件监听器初始化

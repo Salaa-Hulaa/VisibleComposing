@@ -219,4 +219,140 @@ button:hover {
 
 .canvas-scroll-container::-webkit-scrollbar-thumb:hover {
     background: #555;
+}
+
+/* 添加音符编辑区域样式 */
+.note-editor-area {
+    position: relative;
+    height: 400px;
+    overflow: auto;
+    border: 1px solid #ddd;
+    margin: 10px 0;
+}
+
+.note-timeline {
+    position: sticky;
+    top: 0;
+    height: 30px;
+    background: white;
+    border-bottom: 1px solid #ddd;
+    z-index: 2;
+}
+
+.timeline-marker {
+    position: absolute;
+    width: 1px;
+    height: 10px;
+    background: #ccc;
+    bottom: 0;
+}
+
+.timeline-marker.measure {
+    height: 20px;
+    background: #666;
+}
+
+.timeline-marker.beat {
+    height: 15px;
+    background: #999;
+}
+
+.note-grid {
+    position: relative;
+    min-height: 100%;
+}
+
+.note-grid-line {
+    position: absolute;
+    width: 100%;
+    height: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.note-label {
+    position: sticky;
+    left: 0;
+    padding: 0 5px;
+    background: white;
+    font-size: 12px;
+    color: #666;
+}
+
+.note-sequence {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.note-block {
+    position: absolute;
+    height: 20px;
+    background: rgba(74, 144, 226, 0.5);
+    border: 1px solid #4a90e2;
+    border-radius: 3px;
+    cursor: move;
+    user-select: none;
+}
+
+.note-block:hover {
+    background: rgba(74, 144, 226, 0.7);
+}
+
+.note-info {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.note-edit-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+}
+
+/* 添加音符块调整手柄样式 */
+.note-handle {
+    position: absolute;
+    width: 8px;
+    height: 100%;
+    top: 0;
+    cursor: ew-resize;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.note-handle.left {
+    left: 0;
+}
+
+.note-handle.right {
+    right: 0;
+}
+
+.note-handle:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* 修改音符块样式 */
+.note-block {
+    position: absolute;
+    height: 20px;
+    background: rgba(74, 144, 226, 0.5);
+    border: 1px solid #4a90e2;
+    border-radius: 3px;
+    cursor: move;
+    user-select: none;
+}
+
+.note-block:hover {
+    background: rgba(74, 144, 226, 0.7);
 } 

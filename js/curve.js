@@ -231,7 +231,7 @@ function drawGrid() {
         ctx.lineTo(x, canvas.height);
         ctx.stroke();
         
-        // 添数标记
+        // 添���记
         if (i < musicSettings.measureCount) {
             ctx.fillStyle = '#666';
             ctx.font = '12px Arial';
@@ -266,7 +266,7 @@ function drawGrid() {
         }
     }
     
-    // 绘制音高网格
+    // 绘音高网格
     drawPitchGrid();
 }
 
@@ -413,7 +413,7 @@ function reducePoints(points, tolerance = 2) {
         const point = points[i];
         const nextPoint = points[i + 1];
 
-        // 计算当前点到前后点构成的线段的距离
+        // 算当前点到前后点构成的线段的距离
         const distance = pointToLineDistance(
             point,
             lastPoint,
@@ -422,7 +422,7 @@ function reducePoints(points, tolerance = 2) {
 
         // 如果距离大于容差，或者是关键点，则保留该点
         if (distance > tolerance || 
-            i % 10 === 0 || // 每隔一定数量的点保一个
+            i % 10 === 0 || // 每隔一定数量的点保一
             i === 1 || i === points.length - 2) { // 保留始和结束附近的点
             result.push(point);
             lastPoint = point;
@@ -609,21 +609,28 @@ function stopDrawing() {
     isDrawing = false;
     
     if (currentStroke.points.length > 1) {
-        // 获取当前音轨
         const trackId = getCurrentTrackId();
         const track = tracks.find(t => t.id === trackId);
         if (track) {
             // 添加新曲线到音轨
-            track.curves.push({
+            const newCurve = {
                 points: [...currentStroke.points],
                 trackId: trackId,
                 instrument: document.getElementById('curveInstrument').value
-            });
+            };
+            track.curves.push(newCurve);
+            
+            // 将曲线转换为音符
+            const notes = convertToNotes(newCurve);
+            track.notes = track.notes.concat(notes);
+            
+            // 按时间排序音符
+            track.notes.sort((a, b) => a.time - b.time);
+            
             updateTracksDisplay();
         }
     }
     
-    // 重置当前笔画
     currentStroke = {
         points: [],
         isComplete: false
@@ -893,7 +900,7 @@ function playCurve() {
             }
         });
         
-        // 如果有正在编辑的曲线，也播��它
+        // 如果有正在编辑的曲线，也播放它
         if (currentStroke.points.length > 0) {
             const sampledPoints = sampleCurvePoints(currentStroke.points);
             playCurvePoints(sampledPoints, track.instrument, now);
@@ -901,7 +908,7 @@ function playCurve() {
     });
 }
 
-// 添加播放所有曲线的函
+// 添加播放所有曲线的函数
 function playAllCurves() {
     initAudioContext().then(() => {
         const now = Tone.now();
@@ -919,35 +926,51 @@ function playAllCurves() {
     });
 }
 
-// 修改 convertToNotes 函数以支持音符量化
+// 修改 convertToNotes 函数，优化音符生成
 function convertToNotes(curve) {
     if (!curve.points || curve.points.length === 0) return [];
     
-    const sampledPoints = sampleCurvePoints(curve.points);
     const notes = [];
+    let currentNote = null;
+    const tolerance = 0.1; // 音高变化检测的容差
+    const beatDuration = 60 / musicSettings.bpm;
     
-    sampledPoints.forEach((point, index) => {
-        const rawTime = (point.x / canvas.width) * curveSettings.duration;
-        // 量化时间
-        const quantizedTime = quantizeTime(rawTime);
+    curve.points.forEach((point, index) => {
+        const time = (point.x / canvas.width) * curveSettings.duration;
         const freq = canvasYToFrequency(point.y);
         const note = getClosestNote(freq);
+        const velocity = Math.round((point.width || minWidth) / maxWidth * 127);
         
-        // 计算音符持续时间（基于下一个点或默认值）
-        let duration;
-        if (index < sampledPoints.length - 1) {
-            const nextTime = (sampledPoints[index + 1].x / canvas.width) * curveSettings.duration;
-            duration = quantizeTime(nextTime) - quantizedTime;
-        } else {
-            duration = 60 / musicSettings.bpm; // 默认一拍的时长
+        if (!currentNote) {
+            // 开始新音符
+            currentNote = {
+                note: note,
+                time: quantizeTime(time),
+                duration: 0,
+                velocity: velocity,
+                instrument: curve.instrument
+            };
+        } else if (currentNote.note !== note || 
+                   Math.abs(canvasYToFrequency(point.y) - canvasYToFrequency(curve.points[index - 1].y)) > tolerance ||
+                   index === curve.points.length - 1) {
+            // 结束当前音符并开始新音符
+            currentNote.duration = Math.max(
+                quantizeTime(time - currentNote.time),
+                beatDuration / 4 // 最小持续时间为十六分音符
+            );
+            
+            if (currentNote.duration > 0) {
+                notes.push({...currentNote});
+            }
+            
+            currentNote = {
+                note: note,
+                time: quantizeTime(time),
+                duration: 0,
+                velocity: velocity,
+                instrument: curve.instrument
+            };
         }
-        
-        notes.push({
-            note,
-            time: quantizedTime,
-            duration: Math.max(duration, 60 / (musicSettings.bpm * 4)), // 最小持续时间为十六分音符
-            instrument: curve.instrument
-        });
     });
     
     return notes;
@@ -1123,7 +1146,7 @@ function autoScroll(x) {
     const triggerZone = clientWidth * (2/3);
     const scrollStep = 5; // 增加基础滚动步长
     
-    // 如果鼠标在右侧三分之一区域
+    // 如果鼠标在右侧三分之区域
     if (relativeX > triggerZone) {
         // 计算滚动速度，距离边缘越近滚动越快
         const distanceToEdge = relativeX - triggerZone;
